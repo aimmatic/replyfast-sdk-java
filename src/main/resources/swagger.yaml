@@ -1,0 +1,223 @@
+swagger: '2.0'
+info:
+  title: Natural Voice SDK
+  description: Natural Voice SDKs are easiest and best supported way for most developers to quickly build and iterate Natural Voice applications that integrate with our services programmatically.
+  version: 1.2.0
+host: api.aimmatic.com
+schemes:
+- https
+basePath: /v1
+produces:
+- application/json
+paths:
+  /insights/text:
+    get:
+      summary: Retrieve text for audio uploaded by your application
+      description: >-
+        Use this API to retrieve transcripts for audio uploaded by your application. The response includes speech recognition confidence values and sentiment values if there are NLP results. This is a GET operation. Optionally can provide a start and end date range to retrieve the response for a document corpus that have NLP results.
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: query
+        name: audioId
+        type: string
+        description: >-
+          (optional) String, the audioId, returned by Upload Audio API, query parameter start and end will be ignored if audioId is presented.
+      - in: query
+        name: start
+        type: integer
+        format: int64
+        description: >-
+          (optional) UTC start time in millisecond, must not include audioId.
+      - in: query
+        name: end
+        type: integer
+        format: int64
+        description: >-
+          (optional) UTC end time in millisecond, must not include audioId.
+      - in: query
+        name: page
+        type: integer
+        format: int64
+        description: >-
+          (optional) For paginated results the page of the desired results.
+      - in: query
+        name: count
+        type: integer
+        format: int64
+        description: >-
+          (optional) For paginated results the count per page of results.
+      - in: query
+        name: skipMetadata
+        type: string
+        description: >-
+          (optional) To improve performace by skipping couchbase queries set this parameter to "true" (not case sensitive)
+      - in: query
+        name: trends
+        type: string
+        description: >-
+          (optional) Get trend data appended to the results set this parameter to "true" (not case sensitive)
+      tags:
+      - Text
+      responses:
+        '200':
+          description: Text Document
+          schema:
+            $ref: '#/definitions/TextDocumentResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: >-
+            Unauthorized, you have an invalid apikey or secret key. If you do not use the SDK and calculate the signature by yourself make sure to follow our signature authentication calculation guide.
+  /insights/nss:
+    get:
+      summary: Calculate the Net Sentiment Score
+      description: >-
+        Use this API to calculate NSS. This is a GET operation. Optionally can provide a start and end date range to retrieve the response for a document corpus that have NLP results.
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: query
+        name: audioId
+        type: string
+        description: >-
+          (optional) String, the audioId, returned by Upload Audio API, query parameter start and end will be ignored if audioId is presented.
+      - in: query
+        name: start
+        type: integer
+        format: int64
+        description: >-
+          (optional) UTC start time in millisecond, must not include audioId.
+      - in: query
+        name: end
+        type: integer
+        format: int64
+        description: >-
+          (optional) UTC end time in millisecond, must not include audioId.
+      tags:
+      - NSS
+      responses:
+        '200':
+          description: NSS
+          schema:
+            $ref: '#/definitions/NSSResponse'
+        '401':
+          description: >-
+            Unauthorized, you have an invalid apikey or secret key. If you do not use the SDK and calculate the signature by yourself make sure to follow our signature authentication calculation guide.
+definitions:
+  BaseResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+  NSSResponse:
+    allOf:
+    - $ref: '#/definitions/BaseResponse'
+    - properties:
+        score:
+          type: integer
+  TextDocumentResponse:
+    allOf:
+    - $ref: '#/definitions/BaseResponse'
+    - properties:
+        transcriptData:
+          type: array
+          items:
+            $ref: '#/definitions/TranscriptData'
+        trends:
+          $ref: '#/definitions/TrendsData'
+  TranscriptData:
+    type: object
+    properties:
+      confidence:
+        type: number
+        format: float
+      transcript:
+        type: string
+      emailAddress:
+        type: string
+        description: linked email address if attached (mostly used for salesforce)
+      language_code:
+        type: string
+        description: language code from metadata (omitted if metadata is skipped)
+      sentimentType:
+        $ref: '#/definitions/SentimentType'
+      audioId:
+        type: string
+      appId:
+        type: string
+      metadataAudio:
+        type: object
+      unixTimeCreated:
+        type: number
+        format: int64
+        description: Unix Time (https://en.wikipedia.org/wiki/Unix_time) in nanoseconds
+      audioLink:
+        type: string
+        description: A link to download the initial audio recording if avaliable. (Links expire 2 weeks from time of recording)
+  TrendsData:
+    type: object
+    properties:
+      StartTrends:
+        type: string
+      EndTrends:
+        type: string
+      Count:
+        type: number
+        format: int32
+      Enough:
+        type: boolean
+      NlpResults:
+        $ref: '#/definitions/TrendsSubData'
+      ClearlyPositive:
+        $ref: '#/definitions/TrendsSubData'
+      NeutralOrMixed:
+        $ref: '#/definitions/TrendsSubData'
+      ClearlyNegative:
+        $ref: '#/definitions/TrendsSubData'
+  TrendsSubData:
+    type: object
+    properties:
+      Count:
+        type: number
+        format: int32
+      Enough:
+        type: boolean
+      AverageEmotion:
+        type: number
+        format: float32
+      AverageScore:
+        type: number
+        format: float32
+      TopStrings:
+        type: array
+        items:
+          type: string
+      TopStringCounts:
+        type: array
+        items:
+          type: number
+          format: int32
+      TopStringNSS:
+        type: array
+        items:
+          type: number
+          format: int32
+      AverageNSS:
+        type: number
+        format: float32
+  SentimentType:
+    type: object
+    properties:
+      score:
+        type: number
+        format: float
+      magnitude:
+        type: number
+        format: float
